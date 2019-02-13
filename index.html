@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<!-- saved from url=(0081)https://storage.googleapis.com/tfjs-examples/lstm-text-generation/dist/index.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8"><style id="vega-tooltip-style">#vg-tooltip-element {
+  visibility: hidden;
+  padding: 8px;
+  position: fixed;
+  z-index: 1000;
+  font-family: sans-serif;
+  font-size: 11px;
+  border-radius: 3px;
+  box-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+
+  /* The default theme is the light theme. */
+  background-color: rgba(255, 255, 255, 0.95);
+  border: 1px solid #d9d9d9;
+  color: black;
+}
+#vg-tooltip-element.visible {
+  visibility: visible;
+}
+#vg-tooltip-element h2 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+#vg-tooltip-element table {
+  border-spacing: 0;
+}
+#vg-tooltip-element td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding-top: 2px;
+  padding-bottom: 2px;
+}
+#vg-tooltip-element td.key {
+  color: #808080;
+  max-width: 150px;
+  text-align: right;
+  padding-right: 4px;
+}
+#vg-tooltip-element td.value {
+  display: block;
+  max-width: 300px;
+  max-height: 7em;
+  text-align: left;
+}
+
+/* Dark and light color themes */
+#vg-tooltip-element.dark-theme {
+  background-color: rgba(32, 32, 32, 0.9);
+  border: 1px solid #f5f5f5;
+  color: white;
+}
+#vg-tooltip-element.dark-theme td.key {
+  color: #bfbfbf;
+}
+
+#vg-tooltip-element.light-theme {
+  background-color: rgba(255, 255, 255, 0.95);
+  border: 1px solid #d9d9d9;
+  color: black;
+}
+#vg-tooltip-element.light-theme td.key {
+  color: #808080;
+}</style>
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="./index_files/tfjs-examples.c3b5157d.css">
+<style>.monospace {
+    font-family: monospace;
+  }
+
+  .input-title {
+    display: inline-block;
+    width: 12em;
+  }
+
+  select {
+    font-size: 14pt;
+  }
+
+  button {
+    margin: 3px;
+  }
+
+  input:disabled {
+    background: #eeeeee;
+  }
+
+  textarea {
+    width: 98%;
+  }</style><style type="text/css" data-glamor=""></style></head>
+
+
+
+<body class="tfjs-example-container" style="cursor: default;">
+
+  <section class="title-area">
+    <h1>TensorFlow.js Text Generation:</h1>
+    <p class="subtitle">Train a LSTM (Long Short Term Memory) model to generate text</p>
+  </section>
+
+  <section>
+    <p class="section-head">Description</p>
+    <p>
+      This example allows you to train a model to generate text in the style of some existing source text.
+      The model is designed to predict the <em>next character</em> in a text given some preceding string of characters.
+      Doing this repetedly builds up a text, charachter by character.
+    </p>
+  </section>
+
+  <section>
+    <p class="section-head">Status</p>
+    <div id="app-status">Done generating text.</div>
+  </section>
+
+  <section>
+    <p class="section-head">Source Data</p>
+    <select id="text-data-select" disabled=""><option value="nietzsche">Nietzsche</option><option value="julesverne">Jules Verne</option><option value="shakespeare">Shakespeare</option><option value="tfjs-code">TensorFlow.js Code (Compiled, 0.11.7)</option></select>
+    <button id="load-text-data" disabled="">Load source data</button>
+    <div>
+      <textarea class="monospace" id="test-text" value="" rows="10"></textarea>
+    </div>
+  </section>
+
+  <section>
+    <p class="section-head">Model Loading/Creation</p>
+    <div>
+      <p>
+        <em>
+          Model saved in IndexedDB:
+          <span id="model-available">Saved @ 2019-02-11T16:29:05.197Z</span>
+        </em>
+      </p>
+
+      <div>
+        <span class="input-title">LSTM layer size(s) (e.g., 128 or 100,50):</span>
+        <input id="lstm-layer-sizes" value="128" disabled="">
+
+        <button id="create-or-load-model">Load model</button>
+        <button id="delete-model">Delete existing model</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <p class="section-head">Model Training</p>
+    <p>
+      It can take a while to generate an effective model. Try increasing the number of <em>epochs</em> to improve the
+      results, we have found that about <strong>50-100 epochs</strong> are needed to start generating reasonable
+      text.
+    </p>
+    <div class="with-cols">
+      <div>
+        <div>
+          <span class="input-title">Number of Epochs:</span>
+          <input id="epochs" value="5">
+        </div>
+        <div>
+          <span class="input-title">Examples per epoch:</span>
+          <input id="examples-per-epoch" value="2048">
+        </div>
+        <div>
+          <span class="input-title">Batch size:</span>
+          <input id="batch-size" value="128">
+        </div>
+        <div>
+          <span class="input-title">Validation spilt:</span>
+          <input id="validation-split" value="0.0625">
+        </div>
+        <div>
+          <span class="input-title">Learning rate:</span>
+          <input id="learning-rate" value="1e-2">
+        </div>
+        <div>
+          <button id="train-model">Train model</button>
+        </div>
+      </div>
+      <div class="canvases" id="batch-loss-canvas"><div class="css-1w9f25i vega-embed" data-name="loss"><canvas width="571" height="450" class="marks" style="width: 381px; height: 300px;"></canvas><div class="vega-bindings"></div></div></div>
+      <div class="canvases" id="epoch-loss-canvas"><div class="css-1w9f25i vega-embed" data-name="loss"><canvas width="571" height="450" class="marks" style="width: 381px; height: 300px;"></canvas><div class="vega-bindings"></div></div></div>
+    </div>
+  </section>
+
+  <section>
+    <p class="section-head">Text Generation Parameters</p>
+    <p>
+      To generate text the model needs to have some number of preceding characters from which it continues,
+      we call these characters the <em>seed text</em>. You can type one in, or we will extract a random substring from
+      the input text to be the seed text. Note that the seed text must be at least 40 charachters long.
+    </p>
+    <div>
+      <span class="input-title">Length of generated text:</span>
+      <input id="generate-length" value="200">
+    </div>
+
+    <div>
+      <span class="input-title">Generation temperature:</span>
+      <input id="temperature" value="0.75">
+    </div>
+
+    <div>
+      <button id="generate-text">Generate text</button>
+      <span id="text-generation-status">Generating text: 200/200 complete...</span>
+    </div>
+
+    <div>
+      <span class="input-title">Seed text:</span>
+      <textarea class="monospace" id="seed-text" value="" rows="4"></textarea>
+    </div>
+
+    <p class="section-head">Model Output</p>
+
+    <div>
+      <span class="input-title">Generated text:</span>
+      <textarea class="monospace" id="generated-text" readonly="true" value="" rows="10"></textarea>
+    </div>
+
+  </section>
+
+
+
+<script src="./index_files/lstm-text-generation.a022bad2.js.download"></script>
+<div id="vg-tooltip-element" class="vg-tooltip" style="top: 146px; left: 1134px"><table><tbody><tr><td class="key">Epoch:</td><td class="value">99</td></tr><tr><td class="key">Value:</td><td class="value">1.67142997583</td></tr><tr><td class="key">series:</td><td class="value">loss</td></tr></tbody></table></div></body></html>
